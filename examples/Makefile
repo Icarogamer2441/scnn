@@ -12,5 +12,6 @@ all: $(EXAMPLES)
 
 clean:
 	rm -f $(EXAMPLES)
+	rm -f *.bin
 
 .PHONY: all clean 

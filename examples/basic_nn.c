@@ -34,8 +34,8 @@ int main() {
         free(output);
         
         // Test with temperature prediction
-        double* temp_output = scnn_predict_temp(net, inputs[i], 0.5); // Lower temperature
-        printf("Input: %d %d, Temp Output (0.5): %f, Rounded: %d\n", 
+        double* temp_output = scnn_predict_temp(net, inputs[i], 0.7); // Lower temperature
+        printf("Input: %d %d, Temp Output (0.7): %f, Rounded: %d\n", 
                (int)inputs[i][0], (int)inputs[i][1], *temp_output, scnn_round_output(*temp_output));
         free(temp_output);
     }

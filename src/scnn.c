@@ -80,7 +80,7 @@ void scnn_train(scnn_NeuralNetwork* net, double* input, double* target, double l
                 activations[net->num_hidden_layers-1][h] * 
                 net->weights[net->num_hidden_layers][h * net->output_size + o];
         }
-        activations[net->num_hidden_layers][o] = scnn_sigmoid(activations[net->num_hidden_layers][o] + net->bias_o[o]);
+        activations[net->num_hidden_layers][o] = activations[net->num_hidden_layers][o] + net->bias_o[o]; // Linear activation
     }
     
     // Backpropagation
@@ -92,7 +92,7 @@ void scnn_train(scnn_NeuralNetwork* net, double* input, double* target, double l
     
     // Calculate output layer errors
     for (int o = 0; o < net->output_size; o++) {
-        errors[net->num_hidden_layers][o] = (target[o] - activations[net->num_hidden_layers][o]) * scnn_sigmoid_derivative(activations[net->num_hidden_layers][o]);
+        errors[net->num_hidden_layers][o] = (target[o] - activations[net->num_hidden_layers][o]); // No derivative for linear activation
     }
     
     // Calculate hidden layer errors (backwards)
@@ -199,7 +199,7 @@ double* scnn_predict_temp(scnn_NeuralNetwork* net, double* input, double tempera
             output[o] += activations[net->num_hidden_layers-1][h] * 
                         net->weights[net->num_hidden_layers][h * net->output_size + o];
         }
-        output[o] = scnn_sigmoid((output[o] + net->bias_o[o]) / temperature);
+        output[o] = (output[o] + net->bias_o[o]) / temperature; // Linear activation
     }
     
     // Free memory
