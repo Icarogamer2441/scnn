@@ -1,0 +1,13 @@
+<unk>
+<pad>
+<start>
+<end>
+Hello
+world
+This
+is
+a
+test
+.
+,
+! 

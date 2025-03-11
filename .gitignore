@@ -1,0 +1,6 @@
+lib/
+obj/
+
+examples/*.bin
+examples/tokenizer_example
+examples/basic_nn
