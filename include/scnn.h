@@ -24,8 +24,8 @@ typedef struct {
     int* vocab_sizes;
     int vocab_count;
     int max_token_length;
-    char* merges;
-    int merges_count;
+    char** token_map;
+    int token_map_size;
 } scnn_Tokenizer;
 
 // Function declarations
@@ -40,7 +40,7 @@ double scnn_sigmoid_derivative(double x);
 void scnn_randomize(double* arr, int size);
 
 // Tokenizer functions
-scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file, const char* merges_file);
+scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file);
 void scnn_tokenizer_free(scnn_Tokenizer* tokenizer);
 int* scnn_tokenizer_encode(scnn_Tokenizer* tokenizer, const char* text, int* output_length);
 char* scnn_tokenizer_decode(scnn_Tokenizer* tokenizer, const int* tokens, int token_count);

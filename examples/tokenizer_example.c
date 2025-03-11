@@ -3,14 +3,11 @@
 #include "../include/scnn.h"
 
 int main() {
-    // Create tokenizer with default files
+    // Create tokenizer with just vocabulary
     const char* vocab_path = "vocab.txt";
-    const char* merges_path = "merges.txt";
-    
     printf("Using vocabulary file: %s\n", vocab_path);
-    printf("Using merges file: %s\n", merges_path);
     
-    scnn_Tokenizer* tokenizer = scnn_tokenizer_create(vocab_path, merges_path);
+    scnn_Tokenizer* tokenizer = scnn_tokenizer_create(vocab_path);
     if (!tokenizer) {
         fprintf(stderr, "Failed to create tokenizer\n");
         return 1;

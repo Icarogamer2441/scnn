@@ -264,8 +264,8 @@ void scnn_randomize(double* arr, int size) {
     }
 }
 
-// Tokenizer implementation
-scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file, const char* merges_file) {
+// Modified tokenizer creation function
+scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file) {
     scnn_Tokenizer* tokenizer = malloc(sizeof(scnn_Tokenizer));
     if (!tokenizer) {
         fprintf(stderr, "Memory allocation failed for tokenizer\n");
@@ -308,32 +308,93 @@ scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file, const char* merges
     }
     fclose(vocab_fp);
     
-    // Try to open merges file
-    FILE* merges_fp = fopen(merges_file, "r");
-    if (!merges_fp) {
-        fprintf(stderr, "Failed to open merges file: %s\n", merges_file);
-        perror("Error");
-        for (int i = 0; i < vocab_count; i++) free(tokenizer->vocab[i]);
-        free(tokenizer->vocab);
-        free(tokenizer->vocab_sizes);
-        free(tokenizer);
-        return NULL;
+    // New: Find maximum token length and create token map
+    tokenizer->max_token_length = 0;
+    for (int i = 0; i < tokenizer->vocab_count; i++) {
+        int len = tokenizer->vocab_sizes[i];
+        if (len > tokenizer->max_token_length) {
+            tokenizer->max_token_length = len;
+        }
     }
     
-    // Read merges
-    fseek(merges_fp, 0, SEEK_END);
-    long fsize = ftell(merges_fp);
-    fseek(merges_fp, 0, SEEK_SET);
-    
-    tokenizer->merges = malloc(fsize + 1);
-    fread(tokenizer->merges, 1, fsize, merges_fp);
-    tokenizer->merges[fsize] = 0;
-    tokenizer->merges_count = fsize;
-    fclose(merges_fp);
-    
+    // Create token map for quick lookup
+    tokenizer->token_map_size = tokenizer->vocab_count;
+    tokenizer->token_map = malloc(tokenizer->token_map_size * sizeof(char*));
+    for (int i = 0; i < tokenizer->vocab_count; i++) {
+        tokenizer->token_map[i] = tokenizer->vocab[i];
+    }
+
     return tokenizer;
 }
 
+// New helper function to find best token match
+int find_best_token(const scnn_Tokenizer* tokenizer, const char* text, int text_len, int* token_len) {
+    for (int len = tokenizer->max_token_length; len > 0; len--) {
+        if (len > text_len) continue;
+        for (int i = 0; i < tokenizer->token_map_size; i++) {
+            if (tokenizer->vocab_sizes[i] == len && 
+                strncmp(tokenizer->token_map[i], text, len) == 0) {
+                *token_len = len;
+                return i;
+            }
+        }
+    }
+    return -1; // No match found
+}
+
+// Modified encode function with automatic merging
+int* scnn_tokenizer_encode(scnn_Tokenizer* tokenizer, const char* text, int* output_length) {
+    int text_len = strlen(text);
+    int* tokens = malloc(text_len * sizeof(int));
+    int token_count = 0;
+    int pos = 0;
+    
+    while (pos < text_len) {
+        int token_len;
+        int token_id = find_best_token(tokenizer, text + pos, text_len - pos, &token_len);
+        
+        if (token_id == -1) { // Handle unknown characters
+            tokens[token_count++] = (unsigned char)text[pos];
+            pos++;
+        } else {
+            tokens[token_count++] = token_id;
+            pos += token_len;
+        }
+    }
+    
+    *output_length = token_count;
+    return tokens;
+}
+
+// Modified decode function
+char* scnn_tokenizer_decode(scnn_Tokenizer* tokenizer, const int* tokens, int token_count) {
+    int total_len = 0;
+    for (int i = 0; i < token_count; i++) {
+        if (tokens[i] < tokenizer->vocab_count) {
+            total_len += tokenizer->vocab_sizes[tokens[i]];
+        } else {
+            total_len += 1; // For unknown tokens
+        }
+    }
+    
+    char* text = malloc(total_len + 1);
+    int pos = 0;
+    
+    for (int i = 0; i < token_count; i++) {
+        if (tokens[i] < tokenizer->vocab_count) {
+            int len = tokenizer->vocab_sizes[tokens[i]];
+            memcpy(text + pos, tokenizer->vocab[tokens[i]], len);
+            pos += len;
+        } else {
+            text[pos++] = (char)(tokens[i] & 0xFF);
+        }
+    }
+    
+    text[pos] = '\0';
+    return text;
+}
+
+// Remove merges-related code from tokenizer_free
 void scnn_tokenizer_free(scnn_Tokenizer* tokenizer) {
     if (tokenizer) {
         for (int i = 0; i < tokenizer->vocab_count; i++) {
@@ -341,53 +402,9 @@ void scnn_tokenizer_free(scnn_Tokenizer* tokenizer) {
         }
         free(tokenizer->vocab);
         free(tokenizer->vocab_sizes);
-        free(tokenizer->merges);
+        free(tokenizer->token_map);
         free(tokenizer);
     }
-}
-
-int* scnn_tokenizer_encode(scnn_Tokenizer* tokenizer, const char* text, int* output_length) {
-    // Convert text to UTF-8 bytes
-    int byte_length = strlen(text);
-    unsigned char* bytes = malloc(byte_length);
-    memcpy(bytes, text, byte_length);
-    
-    // Initialize tokens with byte values
-    int* tokens = malloc(byte_length * sizeof(int));
-    for (int i = 0; i < byte_length; i++) {
-        tokens[i] = bytes[i];
-    }
-    
-    // Apply BPE merges using the tokenizer's merges
-    // (This is a simplified version - actual BPE implementation would be more complex)
-    if (tokenizer && tokenizer->merges) {
-        // Here you would implement the BPE algorithm using the merges
-    }
-    
-    free(bytes);
-    *output_length = byte_length;
-    return tokens;
-}
-
-char* scnn_tokenizer_decode(scnn_Tokenizer* tokenizer, const int* tokens, int token_count) {
-    // Convert tokens to bytes
-    unsigned char* bytes = malloc(token_count);
-    for (int i = 0; i < token_count; i++) {
-        bytes[i] = tokens[i] & 0xFF;
-    }
-    
-    // Convert bytes to string
-    char* text = malloc(token_count + 1);
-    memcpy(text, bytes, token_count);
-    text[token_count] = '\0';
-    
-    // If we have a vocabulary, we could use it for better decoding
-    if (tokenizer && tokenizer->vocab) {
-        // Here you would implement vocabulary-based decoding
-    }
-    
-    free(bytes);
-    return text;
 }
 
 // Save model to file
