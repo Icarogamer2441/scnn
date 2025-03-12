@@ -44,6 +44,7 @@ scnn_Tokenizer* scnn_tokenizer_create(const char* vocab_file);
 void scnn_tokenizer_free(scnn_Tokenizer* tokenizer);
 int* scnn_tokenizer_encode(scnn_Tokenizer* tokenizer, const char* text, int* output_length);
 char* scnn_tokenizer_decode(scnn_Tokenizer* tokenizer, const int* tokens, int token_count);
+int scnn_tokenizer_size(scnn_Tokenizer* tokenizer);
 
 // New function declarations
 void scnn_save_model(scnn_NeuralNetwork* net, const char* filename);

@@ -520,4 +520,9 @@ int scnn_round_output(double value) {
         return (int)value + 1;
     }
     return (int)value;
+}
+
+// Add tokenizer size function
+int scnn_tokenizer_size(scnn_Tokenizer* tokenizer) {
+    return tokenizer->vocab_count;
 } 
